@@ -8,14 +8,13 @@
 
 namespace UCIEngine\Tests;
 
-
 use PHPUnit\Framework\TestCase;
 use UCIEngine\UCIProcess;
 
 class UCIProcessTest extends TestCase
 {
 
-    const CHESS_ENGINE_PATH = '../chess_engine/stockfish_8_x64';
+    const CHESS_ENGINE_PATH = __DIR__ .'/../chess_engine/stockfish_8_x64';
 
     /**
      * @expectedException \InvalidArgumentException
@@ -63,13 +62,28 @@ class UCIProcessTest extends TestCase
         $this->assertEquals([$expected_str],$value,"It should read '{$expected_str}'");
     }
 
-//    public function test_write()
-//    {
-//        $t = new UCIProcess(self::CHESS_ENGINE_PATH);
-//        $value = $t->read();
-//
-//        $this->assertEquals(['Stockfish 8 64 by T. Romstad, M. Costalba, J. Kiiski, G. Linscott'],$value,'It should read "123"');
-//    }
+    public function test_write()
+    {
+        $t = new UCIProcess(self::CHESS_ENGINE_PATH);
+        $value = $t->read(); //read first line
+        $t->write('uci');
+        $value = $t->read(); //read first line
+
+        $this->assertEquals('uciok',end($value),'It should contain "uciok"');
+    }
+
+    public function test_infinite()
+    {
+        $t = new UCIProcess(self::CHESS_ENGINE_PATH);
+        $value = $t->read(); //read first line
+        $t->write('position startpos');
+        $t->write('go infinite');
+        $value = $t->read(); //read first line
+
+        var_dump($value);
+
+        $this->assertEquals('uciok',end($value),'It should contain "uciok"');
+    }
 
 
 }
