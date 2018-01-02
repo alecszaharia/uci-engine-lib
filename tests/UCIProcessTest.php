@@ -60,6 +60,10 @@ class UCIProcessTest extends TestCase
         $value = $t->read();
 
         $this->assertEquals([$expected_str],$value,"It should read '{$expected_str}'");
+
+        $value = $t->read();
+
+        $this->assertEquals([],$value,"It should read empty string");
     }
 
     public function test_write()
@@ -72,18 +76,16 @@ class UCIProcessTest extends TestCase
         $this->assertEquals('uciok',end($value),'It should contain "uciok"');
     }
 
-    public function test_infinite()
+    public function test_read_write()
     {
         $t = new UCIProcess(self::CHESS_ENGINE_PATH);
-        $value = $t->read(); //read first line
-        $t->write('position startpos');
-        $t->write('go infinite');
-        $value = $t->read(); //read first line
+        $t->read(); // introduction line
+        $t->write('position startpos'); // write uci
+        $t->write('go movetime 200');
 
-        var_dump($value);
+        $output = $t->read();
 
-        $this->assertEquals('uciok',end($value),'It should contain "uciok"');
+        $this->assertGreaterThan(1, count($output),'It should return some lines');
     }
-
 
 }

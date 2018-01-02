@@ -16,54 +16,78 @@ class UCIEngine implements UCIEngineInterface
      */
     private $engine_path;
 
+    /**
+     * @var UCIProcess
+     */
+    private $uci_process;
+
     public function __construct($engine_path)
     {
         $this->engine_path = $engine_path;
+
+        $this->uci_process = new UCIProcess($this->engine_path);
+
     }
 
     public function sendCommand($command)
     {
-        // TODO: Implement sendCommand() method.
+        if ($this->isString($command)) {
+            $this->uci_process->write($command);
+        }
     }
 
     public function sendCommands($commands)
     {
-        // TODO: Implement sendCommands() method.
+        if (is_array($commands)) {
+            foreach ($commands as $command) {
+                $this->sendCommand($command);
+            }
+        }
     }
 
     public function setOption($name, $value)
     {
-        // TODO: Implement setOption() method.
+        if ($this->isString($name) && $this->isString($value)) {
+            $this->sendCommand("setoption name {$name} value {$value}");
+        }
     }
 
     public function setOptions($options)
     {
-        // TODO: Implement setOptions() method.
+        if (is_array($options)) {
+            foreach ($options as $option) {
+                $this->setOption(...$option);
+            }
+        }
     }
 
-    public function getOption($name)
+    public function setPosition($position, $moves = null)
     {
-        // TODO: Implement getOption() method.
+        if ($this->isString($position)) {
+
+            $movesCommand = "";
+            if($this->isString($moves)) {
+                $movesCommand = " moves {$moves}";
+            }
+
+            if ($position == 'startpos') {
+                $this->sendCommand("position {$position}{$movesCommand}");
+            } else {
+                $this->sendCommand("position fen {$position}{$movesCommand}");
+            }
+        }
     }
 
-    public function getOptions($name)
+    public function newGame()
     {
-        // TODO: Implement getOptions() method.
+        $this->sendCommand("ucinewgame");
     }
 
-    public function setPosition($position)
+    private function isString($string)
     {
-        // TODO: Implement setPosition() method.
+        return is_string($string) && !empty($string);
+
     }
 
-    public function setStartPosition()
-    {
-        // TODO: Implement setStartPosition() method.
-    }
-
-    public function setMovesPosition($moves)
-    {
-        // TODO: Implement setMovesPosition() method.
-    }
 
 }

@@ -19,5 +19,5 @@ interface UCIProcessInterface
 
     public function read();
 
-    public function getProcessDescriptors();
+    function getProcessDescriptors();
 }

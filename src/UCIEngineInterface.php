@@ -46,39 +46,17 @@ interface UCIEngineInterface
      */
     public function setOptions($options);
 
-    /**
-     * @param string $name
-     * @return self
-     */
-    public function getOption($name);
 
     /**
-     * Return all options provided by the engine
-     * ex: [
-     *      'option1'=>'value1',
-     *      'option2'=>'value2'
-     *      ...
-     *  ];
-     * @param $name
-     * @return string[]
+     * @param $position
+     * @param null $moves
+     * @return mixed
      */
-    public function getOptions($name);
+    public function setPosition($position,$moves = null);
 
     /**
-     * @param string $position
-     * @return self
+     * @return mixed
      */
-    public function setPosition($position);
-
-    /**
-     * @return self
-     */
-    public function setStartPosition();
-
-    /**
-     * @param $moves
-     * @return self
-     */
-    public function setMovesPosition($moves);
+    public function newGame();
 
 }

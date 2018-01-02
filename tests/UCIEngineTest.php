@@ -10,35 +10,101 @@ namespace UCIEngine\Tests;
 
 
 use PHPUnit\Framework\TestCase;
+use UCIEngine\UCIEngine;
+use UCIEngine\UCIProcess;
 
 class UCIEngineTest extends TestCase
 {
+    const CHESS_ENGINE_PATH = __DIR__.'/../chess_engine/stockfish_8_x64';
 
-    public function test_dummy(){
-        $this->assertTrue(true);
+    private function setProtectedProperty($object, $property, $value)
+    {
+        $reflection = new \ReflectionClass($object);
+        $reflection_property = $reflection->getProperty($property);
+        $reflection_property->setAccessible(true);
+        $reflection_property->setValue($object, $value);
     }
 
-//    public function test_sendCommand()
-//    {
-//        // TODO: Implement sendCommand() method.
-//        $this->assertTrue(true);
-//    }
-//
-//    public function test_sendCommands()
-//    {
-//        // TODO: Implement sendCommands() method.
-//    }
-//
-//    public function test_setOption()
-//    {
-//        // TODO: Implement setOption() method.
-//    }
-//
-//    public function test_setOptions()
-//    {
-//        // TODO: Implement setOptions() method.
-//    }
-//
+
+    public function test_sendCommand()
+    {
+        $command = "position startpos";
+
+        $uci_process = $this->getUciProcess(['write']);
+
+        $uci_process->expects($this->once())
+            ->method('write')
+            ->with($this->equalTo($command));
+
+        $engine = $this->getEngine($uci_process);
+
+        $engine->sendCommand($command);
+
+        $engine->sendCommand("");
+        $engine->sendCommand(null);
+        $engine->sendCommand(123);
+    }
+
+    public function test_sendCommands()
+    {
+        $commands = ["position startpos", "go movetime 10"];
+
+        $uci_process = $this->getUciProcess(['write', 'read']);
+
+        $uci_process->expects($this->exactly(2))
+            ->method('write')
+            ->withConsecutive(
+                [$this->equalTo($commands[0])],
+                [$this->equalTo($commands[1])]
+            );
+
+        $engine = $this->getEngine($uci_process);
+
+        $engine->sendCommands($commands);
+        $engine->sendCommands(["", null, 100]);
+    }
+
+    public function test_setOption()
+    {
+        $option_name = "MultiPV";
+        $option_value = "1";
+
+        $uci_process = $this->getUciProcess(['write']);
+
+        $uci_process->expects($this->exactly(1))
+            ->method('write')
+            ->with($this->equalTo("setoption name {$option_name} value {$option_value}"));
+
+        $engine = $this->getEngine($uci_process);
+        $engine->setOption($option_name, $option_value);
+    }
+
+    public function test_setOptions()
+    {
+        $options = [
+            ["name1", "value1"],
+            ["name2", "value2"],
+            ["name3", "value3"],
+            [null, "value3"],
+            ["name", null],
+        ];
+
+        $consecutiveParameters = [];
+        foreach ($options as $option) {
+            $consecutiveParameters[] = [$this->equalTo("setoption name {$option[0]} value {$option[1]}")];
+        }
+
+        $uci_process = $this->getUciProcess(['write', 'read']);
+
+        $uci_process->expects($this->exactly(3))
+            ->method('write')
+            ->withConsecutive(...$consecutiveParameters);
+
+        $engine = $this->getEngine($uci_process);
+        $engine->setOptions($options);
+    }
+
+
 //    public function test_getOption()
 //    {
 //        // TODO: Implement getOption() method.
@@ -49,10 +115,40 @@ class UCIEngineTest extends TestCase
 //        // TODO: Implement getOptions() method.
 //    }
 //
-//    public function test_setPosition()
-//    {
-//        // TODO: Implement setPosition() method.
-//    }
+    public function test_setPosition()
+    {
+        $uci_process = $this->getUciProcess(['write']);
+
+        $uci_process->expects($this->exactly(5))
+            ->method('write')
+            ->withConsecutive(
+                ['position startpos'],
+                ['position startpos moves e2e4 e7e5'],
+                ['position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'],
+                ['position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 moves e2e4 e7e5']
+            );
+
+        $engine = $this->getEngine($uci_process);
+        $engine->setPosition('startpos');
+        $engine->setPosition('startpos','e2e4 e7e5');
+        $engine->setPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+        $engine->setPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','e2e4 e7e5');
+        $engine->setPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',null);
+        $engine->setPosition(123);
+        $engine->setPosition(null);
+    }
+
+    public function test_ucinewgame()
+    {
+        $uci_process = $this->getUciProcess(['write']);
+
+        $uci_process->expects($this->exactly(1))
+            ->method('write')
+            ->with("ucinewgame");
+
+        $engine = $this->getEngine($uci_process);
+        $engine->newGame();
+    }
 //
 //    public function test_setStartPosition()
 //    {
@@ -64,4 +160,30 @@ class UCIEngineTest extends TestCase
 //        // TODO: Implement setMovesPosition() method.
 //    }
 
+
+    /**
+     * @param $methods
+     * @return \PHPUnit_Framework_MockObject_MockObject
+     */
+    private function getUciProcess($methods)
+    {
+        $uci_process = $this->getMockBuilder(UCIProcess::class)
+            ->disableOriginalConstructor()
+            ->setMethods($methods)
+            ->getMock();
+
+        return $uci_process;
+    }
+
+    /**
+     * @param UCIProcess $process
+     * @return UCIEngine
+     */
+    private function getEngine(UCIProcess $process)
+    {
+        $engine = new UCIEngine(self::CHESS_ENGINE_PATH);
+        $this->setProtectedProperty($engine, 'uci_process', $process);
+
+        return $engine;
+    }
 }

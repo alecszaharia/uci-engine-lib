@@ -11,8 +11,9 @@ namespace UCIEngine;
 
 class UCIProcess implements UCIProcessInterface
 {
-    const T_USEC = 500;
-    const T_SEC = 2;
+    private $T_USEC = 100000;
+    private $T_SEC = 0;
+
 
     /**
      * UCI engine path
@@ -45,7 +46,7 @@ class UCIProcess implements UCIProcessInterface
             throw new \Exception('The process cannot be started.');
         }
 
-        $this->throwIfError();
+        $this->throwErrorsIfFound();
     }
 
     /**
@@ -54,9 +55,9 @@ class UCIProcess implements UCIProcessInterface
      */
     public function write($command)
     {
-        $result = fputs( $this->process_pipes[0], trim($command)."\n" );
+        $result = fputs($this->process_pipes[0], trim($command)."\n");
         fflush($this->process_pipes[0]);
-        $this->throwIfError();
+        $this->throwErrorsIfFound();
 
         return $result;
     }
@@ -72,7 +73,7 @@ class UCIProcess implements UCIProcessInterface
     /**
      * @return mixed
      */
-    public function getProcessDescriptors()
+    function getProcessDescriptors()
     {
         return array(
             array('pipe', 'r'),
@@ -89,9 +90,20 @@ class UCIProcess implements UCIProcessInterface
     {
         $lines = [];
         $read = $write = $except = array($stream);
+
         // wait until something can be read
-        while (($num_changes = stream_select($read, $write, $except, self::T_SEC, self::T_USEC)) >= 1 && !feof($stream)) {
-            $lines[] = trim(fgets($stream));
+        while (($num_changes = stream_select($read, $write, $except, $this->T_SEC, $this->T_USEC)) > 0 && !feof($stream)) {
+            $line = trim(fgets($stream));
+
+            $lines[] = $line;
+
+            if (trim($line) == "\n") {
+                break;
+            }
+
+            if (preg_match('/^bestmove/i', $line) || preg_match('/^bestmove \(none\)/i', $line)) {
+                break;
+            }
         }
 
         return $lines;
@@ -100,7 +112,7 @@ class UCIProcess implements UCIProcessInterface
     /**
      * @throws \Exception
      */
-    private function throwIfError()
+    private function throwErrorsIfFound()
     {
         $errors = $this->readFromStream($this->process_pipes[2]);
 
@@ -120,6 +132,28 @@ class UCIProcess implements UCIProcessInterface
 //
 //            @proc_close($this->process);
 //        }
+    }
+
+    /**
+     * @param int $T_USEC
+     * @return UCIProcess
+     */
+    public function setTUSEC($T_USEC)
+    {
+        $this->T_USEC = $T_USEC;
+
+        return $this;
+    }
+
+    /**
+     * @param int $T_SEC
+     * @return UCIProcess
+     */
+    public function setTSEC($T_SEC)
+    {
+        $this->T_SEC = $T_SEC;
+
+        return $this;
     }
 
 }
