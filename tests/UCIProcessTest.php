@@ -66,6 +66,20 @@ class UCIProcessTest extends TestCase
         $this->assertEquals([],$value,"It should read empty string");
     }
 
+    public function test_read_engine_output()
+    {
+        $expected_str = 'Stockfish 8 64 by T. Romstad, M. Costalba, J. Kiiski, G. Linscott';
+
+        $t = new UCIProcess(self::CHESS_ENGINE_PATH);
+        $value = $t->read();
+
+        $this->assertEquals([$expected_str],$value,"It should read '{$expected_str}'");
+
+        $value = $t->read();
+
+        $this->assertEquals([],$value,"It should read empty string");
+    }
+
     public function test_write()
     {
         $t = new UCIProcess(self::CHESS_ENGINE_PATH);

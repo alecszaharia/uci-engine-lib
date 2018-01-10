@@ -34,15 +34,19 @@ class UCIEngineTest extends TestCase
 
         $uci_process->expects($this->once())
             ->method('write')
-            ->with($this->equalTo($command));
+            ->with($this->equalTo($command))
+	        ->willReturn(array());
 
         $engine = $this->getEngine($uci_process);
 
-        $engine->sendCommand($command);
+        $lines = $engine->sendCommand($command);
+
+        $this->assertEmpty( $lines,' The result should be empty for command "position startpos"');
 
         $engine->sendCommand("");
         $engine->sendCommand(null);
         $engine->sendCommand(123);
+
     }
 
     public function test_sendCommands()
@@ -56,11 +60,15 @@ class UCIEngineTest extends TestCase
             ->withConsecutive(
                 [$this->equalTo($commands[0])],
                 [$this->equalTo($commands[1])]
-            );
+            )
+	        ->willReturn([ [],['line1','line2','line3'] ]);
 
         $engine = $this->getEngine($uci_process);
 
-        $engine->sendCommands($commands);
+        $lines = $engine->sendCommands($commands);
+
+        $this->assertCount( 2, $lines,  'It should return two response sets' );
+
         $engine->sendCommands(["", null, 100]);
     }
 

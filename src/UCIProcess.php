@@ -32,6 +32,13 @@ class UCIProcess implements UCIProcessInterface
      */
     protected $process;
 
+	/**
+	 * UCIProcess constructor.
+	 *
+	 * @param $engine_path
+	 *
+	 * @throws \Exception
+	 */
     public function __construct($engine_path)
     {
         if (empty($engine_path)) {
@@ -49,10 +56,12 @@ class UCIProcess implements UCIProcessInterface
         $this->throwErrorsIfFound();
     }
 
-    /**
-     * @param string $command
-     * @return bool|int
-     */
+	/**
+	 * @param string $command
+	 *
+	 * @return bool|int|mixed
+	 * @throws \Exception
+	 */
     public function write($command)
     {
         $result = fputs($this->process_pipes[0], trim($command)."\n");
@@ -76,7 +85,7 @@ class UCIProcess implements UCIProcessInterface
     function getProcessDescriptors()
     {
         return array(
-            array('pipe', 'r'),
+            array('pipe', 'r'), // stdin
             array('pipe', 'w'), // stdout
             array('pipe', 'w'), // stderr
         );
@@ -89,7 +98,9 @@ class UCIProcess implements UCIProcessInterface
     private function readFromStream($stream)
     {
         $lines = [];
-        $read = $write = $except = array($stream);
+        $read =  array($stream);
+	    $write = $except = array();
+
 
         // wait until something can be read
         while (($num_changes = stream_select($read, $write, $except, $this->T_SEC, $this->T_USEC)) > 0 && !feof($stream)) {

@@ -9,85 +9,131 @@
 namespace UCIEngine;
 
 
-class UCIEngine implements UCIEngineInterface
-{
-    /**
-     * @var string
-     */
-    private $engine_path;
+class UCIEngine implements UCIEngineInterface {
+	/**
+	 * @var string
+	 */
+	private $engine_path;
 
-    /**
-     * @var UCIProcess
-     */
-    private $uci_process;
+	/**
+	 * @var UCIProcess
+	 */
+	private $uci_process;
 
-    public function __construct($engine_path)
-    {
-        $this->engine_path = $engine_path;
+	/**
+	 * UCIEngine constructor.
+	 *
+	 * @param $engine_path
+	 */
+	public function __construct( $engine_path ) {
+		$this->engine_path = $engine_path;
 
-        $this->uci_process = new UCIProcess($this->engine_path);
+		$this->uci_process = new UCIProcess( $this->engine_path );
 
-    }
+	}
 
-    public function sendCommand($command)
-    {
-        if ($this->isString($command)) {
-            $this->uci_process->write($command);
-        }
-    }
+	/**
+	 * @param string $command
+	 *
+	 * @return array|UCIEngineInterface
+	 * @throws \Exception
+	 */
+	public function sendCommand( $command ) {
+		if ( $this->isValidString( $command ) ) {
+			$this->uci_process->write( $command );
 
-    public function sendCommands($commands)
-    {
-        if (is_array($commands)) {
-            foreach ($commands as $command) {
-                $this->sendCommand($command);
-            }
-        }
-    }
+			return $this->uci_process->read();
+		}
+	}
 
-    public function setOption($name, $value)
-    {
-        if ($this->isString($name) && $this->isString($value)) {
-            $this->sendCommand("setoption name {$name} value {$value}");
-        }
-    }
+	/**
+	 * @param string[] $commands
+	 *
+	 * @return array|UCIEngineInterface
+	 * @throws \Exception
+	 */
+	public function sendCommands( $commands ) {
+		if ( is_array( $commands ) ) {
+			$results = array();
+			foreach ( $commands as $command ) {
+				$results[] = $this->sendCommand( $command );
+			}
 
-    public function setOptions($options)
-    {
-        if (is_array($options)) {
-            foreach ($options as $option) {
-                $this->setOption(...$option);
-            }
-        }
-    }
+			return $results;
+		}
+	}
 
-    public function setPosition($position, $moves = null)
-    {
-        if ($this->isString($position)) {
+	/**
+	 * @param string $name
+	 * @param string $value
+	 *
+	 * @return array|UCIEngineInterface
+	 * @throws \Exception
+	 */
+	public function setOption( $name, $value ) {
+		if ( $this->isValidString( $name ) && $this->isValidString( $value ) ) {
+			return $this->sendCommand( "setoption name {$name} value {$value}" );
+		}
+	}
 
-            $movesCommand = "";
-            if($this->isString($moves)) {
-                $movesCommand = " moves {$moves}";
-            }
+	/**
+	 * @param $options
+	 *
+	 * @return array|mixed
+	 * @throws \Exception
+	 */
+	public function setOptions( $options ) {
+		if ( is_array( $options ) ) {
+			$results = array();
+			foreach ( $options as $option ) {
+				$results[] = $this->setOption( ...$option );
+			}
 
-            if ($position == 'startpos') {
-                $this->sendCommand("position {$position}{$movesCommand}");
-            } else {
-                $this->sendCommand("position fen {$position}{$movesCommand}");
-            }
-        }
-    }
+			return $results;
+		}
+	}
 
-    public function newGame()
-    {
-        $this->sendCommand("ucinewgame");
-    }
+	/**
+	 * @param $position
+	 * @param null $moves
+	 *
+	 * @return array|mixed|null|UCIEngineInterface
+	 * @throws \Exception
+	 */
+	public function setPosition( $position, $moves = null ) {
+		if ( $this->isValidString( $position ) ) {
 
-    private function isString($string)
-    {
-        return is_string($string) && !empty($string);
+			$movesCommand = "";
+			if ( $this->isValidString( $moves ) ) {
+				$movesCommand = " moves {$moves}";
+			}
 
-    }
+			$result = null;
 
+			if ( $position == 'startpos' ) {
+				$result = $this->sendCommand( "position {$position}{$movesCommand}" );
+			} else {
+				$result = $this->sendCommand( "position fen {$position}{$movesCommand}" );
+			}
 
+			return $result;
+		}
+	}
+
+	/**
+	 * @return array|mixed|UCIEngineInterface
+	 * @throws \Exception
+	 */
+	public function newGame() {
+		return $this->sendCommand( "ucinewgame" );
+	}
+
+	/**
+	 * @param $string
+	 *
+	 * @return bool
+	 */
+	private function isValidString( $string ) {
+		return is_string( $string ) && ! empty( $string );
+	}
 }
