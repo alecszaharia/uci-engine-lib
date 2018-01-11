@@ -76,6 +76,10 @@ class UCIProcess implements UCIProcessInterface
      */
     public function read()
     {
+        if(is_null($this->process_pipes[1])){
+            var_dump($this->process_pipes);
+        }
+
         return $this->readFromStream($this->process_pipes[1]);
     }
 
@@ -98,9 +102,7 @@ class UCIProcess implements UCIProcessInterface
     private function readFromStream($stream)
     {
         $lines = [];
-        $read =  array($stream);
-	    $write = $except = array();
-
+        $read = $write = $except =  array($stream);
 
         // wait until something can be read
         while (($num_changes = stream_select($read, $write, $except, $this->T_SEC, $this->T_USEC)) > 0 && !feof($stream)) {

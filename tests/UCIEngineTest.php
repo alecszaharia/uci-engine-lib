@@ -30,11 +30,15 @@ class UCIEngineTest extends TestCase
     {
         $command = "position startpos";
 
-        $uci_process = $this->getUciProcess(['write']);
+        $uci_process = $this->getUciProcess(['write','read']);
 
         $uci_process->expects($this->once())
             ->method('write')
             ->with($this->equalTo($command))
+	        ->willReturn(array());
+
+        $uci_process->expects($this->once())
+            ->method('read')
 	        ->willReturn(array());
 
         $engine = $this->getEngine($uci_process);
@@ -63,6 +67,10 @@ class UCIEngineTest extends TestCase
             )
 	        ->willReturn([ [],['line1','line2','line3'] ]);
 
+        $uci_process->expects($this->exactly(2))
+            ->method('read')
+	        ->willReturn([ [],['line1','line2','line3'] ]);
+
         $engine = $this->getEngine($uci_process);
 
         $lines = $engine->sendCommands($commands);
@@ -77,11 +85,15 @@ class UCIEngineTest extends TestCase
         $option_name = "MultiPV";
         $option_value = "1";
 
-        $uci_process = $this->getUciProcess(['write']);
+        $uci_process = $this->getUciProcess(['write', 'read']);
 
         $uci_process->expects($this->exactly(1))
             ->method('write')
             ->with($this->equalTo("setoption name {$option_name} value {$option_value}"));
+
+        $uci_process->expects($this->exactly(1))
+            ->method('read')
+            ->willReturn([]);
 
         $engine = $this->getEngine($uci_process);
         $engine->setOption($option_name, $option_value);
@@ -98,8 +110,10 @@ class UCIEngineTest extends TestCase
         ];
 
         $consecutiveParameters = [];
+        $consecutiveReturns = [];
         foreach ($options as $option) {
             $consecutiveParameters[] = [$this->equalTo("setoption name {$option[0]} value {$option[1]}")];
+            $consecutiveReturns[] = [];
         }
 
         $uci_process = $this->getUciProcess(['write', 'read']);
@@ -107,6 +121,11 @@ class UCIEngineTest extends TestCase
         $uci_process->expects($this->exactly(3))
             ->method('write')
             ->withConsecutive(...$consecutiveParameters);
+
+        $uci_process->expects($this->exactly(3))
+            ->method('read')
+            ->willReturn(...$consecutiveReturns);
+
 
         $engine = $this->getEngine($uci_process);
         $engine->setOptions($options);
@@ -125,7 +144,7 @@ class UCIEngineTest extends TestCase
 //
     public function test_setPosition()
     {
-        $uci_process = $this->getUciProcess(['write']);
+        $uci_process = $this->getUciProcess(['write','read']);
 
         $uci_process->expects($this->exactly(5))
             ->method('write')
@@ -136,23 +155,41 @@ class UCIEngineTest extends TestCase
                 ['position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 moves e2e4 e7e5']
             );
 
+        $consecutiveReturns = [[],[],[],[],[]];
+
+
+        //there will be only 5 valid calls
+        $uci_process->expects($this->exactly(5))
+            ->method('read')
+            ->willReturn(...$consecutiveReturns);
+
+
         $engine = $this->getEngine($uci_process);
+
+        // valid calls
         $engine->setPosition('startpos');
         $engine->setPosition('startpos','e2e4 e7e5');
         $engine->setPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
         $engine->setPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','e2e4 e7e5');
         $engine->setPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',null);
+
+        // invalid calls
         $engine->setPosition(123);
         $engine->setPosition(null);
     }
 
     public function test_ucinewgame()
     {
-        $uci_process = $this->getUciProcess(['write']);
+        $uci_process = $this->getUciProcess(['write','read']);
 
         $uci_process->expects($this->exactly(1))
             ->method('write')
             ->with("ucinewgame");
+
+        $uci_process->expects($this->exactly(1))
+            ->method('read')
+            ->willReturn([]);
+
 
         $engine = $this->getEngine($uci_process);
         $engine->newGame();
