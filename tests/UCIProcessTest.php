@@ -14,7 +14,7 @@ use UCIEngine\UCIProcess;
 class UCIProcessTest extends TestCase
 {
 
-    const CHESS_ENGINE_PATH = __DIR__ .'/../chess_engine/stockfish_8_x64';
+    const CHESS_ENGINE_PATH = __DIR__ .'/chess_engine/stockfish_8_x64';
 
     /**
      * @expectedException \InvalidArgumentException
