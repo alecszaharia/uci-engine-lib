@@ -17,35 +17,26 @@ class UCIEngineTest extends TestCase
 {
     const CHESS_ENGINE_PATH = __DIR__.'/chess_engine/stockfish_8_x64';
 
-    private function setProtectedProperty($object, $property, $value)
-    {
-        $reflection = new \ReflectionClass($object);
-        $reflection_property = $reflection->getProperty($property);
-        $reflection_property->setAccessible(true);
-        $reflection_property->setValue($object, $value);
-    }
-
-
     public function test_sendCommand()
     {
         $command = "position startpos";
 
-        $uci_process = $this->getUciProcess(['write','read']);
+        $uci_process = $this->getUciProcess(['write', 'read']);
 
         $uci_process->expects($this->once())
             ->method('write')
             ->with($this->equalTo($command))
-	        ->willReturn(array());
+            ->willReturn(array());
 
         $uci_process->expects($this->once())
             ->method('read')
-	        ->willReturn(array());
+            ->willReturn(array());
 
         $engine = $this->getEngine($uci_process);
 
         $lines = $engine->sendCommand($command);
 
-        $this->assertEmpty( $lines,' The result should be empty for command "position startpos"');
+        $this->assertEmpty($lines, ' The result should be empty for command "position startpos"');
 
         $engine->sendCommand("");
         $engine->sendCommand(null);
@@ -65,17 +56,17 @@ class UCIEngineTest extends TestCase
                 [$this->equalTo($commands[0])],
                 [$this->equalTo($commands[1])]
             )
-	        ->willReturn([ [],['line1','line2','line3'] ]);
+            ->willReturn([[], ['line1', 'line2', 'line3']]);
 
         $uci_process->expects($this->exactly(2))
             ->method('read')
-	        ->willReturn([ [],['line1','line2','line3'] ]);
+            ->willReturn([[], ['line1', 'line2', 'line3']]);
 
         $engine = $this->getEngine($uci_process);
 
         $lines = $engine->sendCommands($commands);
 
-        $this->assertCount( 2, $lines,  'It should return two response sets' );
+        $this->assertCount(2, $lines, 'It should return two response sets');
 
         $engine->sendCommands(["", null, 100]);
     }
@@ -144,7 +135,7 @@ class UCIEngineTest extends TestCase
 //
     public function test_setPosition()
     {
-        $uci_process = $this->getUciProcess(['write','read']);
+        $uci_process = $this->getUciProcess(['write', 'read']);
 
         $uci_process->expects($this->exactly(5))
             ->method('write')
@@ -155,7 +146,7 @@ class UCIEngineTest extends TestCase
                 ['position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 moves e2e4 e7e5']
             );
 
-        $consecutiveReturns = [[],[],[],[],[]];
+        $consecutiveReturns = [[], [], [], [], []];
 
 
         //there will be only 5 valid calls
@@ -168,10 +159,10 @@ class UCIEngineTest extends TestCase
 
         // valid calls
         $engine->setPosition('startpos');
-        $engine->setPosition('startpos','e2e4 e7e5');
+        $engine->setPosition('startpos', 'e2e4 e7e5');
         $engine->setPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
-        $engine->setPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','e2e4 e7e5');
-        $engine->setPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',null);
+        $engine->setPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', 'e2e4 e7e5');
+        $engine->setPosition('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', null);
 
         // invalid calls
         $engine->setPosition(123);
@@ -180,7 +171,7 @@ class UCIEngineTest extends TestCase
 
     public function test_ucinewgame()
     {
-        $uci_process = $this->getUciProcess(['write','read']);
+        $uci_process = $this->getUciProcess(['write', 'read']);
 
         $uci_process->expects($this->exactly(1))
             ->method('write')
@@ -193,6 +184,26 @@ class UCIEngineTest extends TestCase
 
         $engine = $this->getEngine($uci_process);
         $engine->newGame();
+    }
+
+    public function test_analysis() {
+        $engine = $this->getEngine();
+        $engine->newGame();
+        $engine->setPosition('startpos');
+        $output = $engine->sendCommand('go movetime 50');
+
+        $this->assertTrue( is_array($output) );
+
+        $best_move_line = null;
+
+        foreacH($output as $line) {
+            if(strpos($line,'bestmove')!==false) {
+                $best_move_line = $line;
+                break;
+            }
+        }
+
+        $this->assertNotNull($best_move_line,'There was no best move line in the output.');
     }
 //
 //    public function test_setStartPosition()
@@ -224,11 +235,23 @@ class UCIEngineTest extends TestCase
      * @param UCIProcess $process
      * @return UCIEngine
      */
-    private function getEngine(UCIProcess $process)
+    private function getEngine(UCIProcess $process = null)
     {
         $engine = new UCIEngine(self::CHESS_ENGINE_PATH);
-        $this->setProtectedProperty($engine, 'uci_process', $process);
+
+        if ($process) {
+            $this->setProtectedProperty($engine, 'uci_process', $process);
+        }
 
         return $engine;
     }
+
+    private function setProtectedProperty($object, $property, $value)
+    {
+        $reflection = new \ReflectionClass($object);
+        $reflection_property = $reflection->getProperty($property);
+        $reflection_property->setAccessible(true);
+        $reflection_property->setValue($object, $value);
+    }
+
 }
